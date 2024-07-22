@@ -1,0 +1,10 @@
+arg("").securityresources
+    | where type == 'microsoft.security/regulatorycompliancestandards'
+    | extend complianceStandard=name,
+             state=properties.state,
+             passedControls=toreal(properties.passedControls),
+             failedControls=toreal(properties.failedControls)
+    | extend compliance_rate=strcat(round(passedControls/(passedControls + failedControls)*100 ,1), "%")// 준수율(소수점 2번째에서 반올림)
+    | where complianceStandard == "Microsoft-cloud-security-benchmark"
+    | project subscriptionId, passedControls, failedControls, compliance_rate
+    | order by subscriptionId

@@ -1,0 +1,16 @@
+arg("").securityresources
+| where type == "microsoft.security/assessments/subassessments"
+| extend assessmentKey = tostring(split(id, "/", 12)[0]) // 스캐너 평가키 추출
+| where assessmentKey == "f97aa83c-9b63-4f9a-99f6-b22c4398f936" or assessmentKey == "82e20e14-edc5-4373-bfc4-f13121257c37"
+| extend DB_resourcename = tostring(split(properties.resourceDetails.id, "/", 8)[0]),
+         DB_name = tostring(split(properties.resourceDetails.id, "/", 10)[0]), 
+         Status = tostring(properties.status.code),
+         displayName = tostring(properties.displayName),
+         category = tostring(properties.category),
+         benchmarks = tostring(properties.additionalData.benchmarks[0].benchmark),
+         Severity = tostring(properties.status.severity),
+         Severity_sco = toint(iff(properties.status.severity=="High", 3, iff(properties.status.severity=="Medium", 2, iff(properties.status.severity=="Low", 1, 0)))) //심각도에 따라 정렬위해 컬럼 추가
+| where Status == "Unhealthy"
+| project DB_resourcename, DB_name, displayName, category, benchmarks, Severity, Severity_sco
+| order by DB_resourcename, DB_name, Severity_sco desc // 심각도 High -> Low 순 정렬
+| project-away Severity_sco // 별도 심각도 점수 컬럼 출력 제외

@@ -1,0 +1,17 @@
+SecurityAlert 
+| extend localTime = datetime_utc_to_local(StartTime, 'Asia/Seoul') // UTC -> KST 변환
+| where localTime between (datetime(2023-12-01) .. 7d)  // 12.01~12.07까지 7일간 로그 조회(보고서 발송일자 기준 '-7'일로 변수 설정 필요)  
+| where ProductName == "Microsoft Defender for Cloud" or ProductName == "Azure Security Center"// MDC 경고만 필터(Sentinel 경고도 가져오는경우 해당 행 주석처리) 
+| extend ParsedExtendedProperties = parse_json(ExtendedProperties) // json구조로 변환 
+| extend ResourceType = tostring(ParsedExtendedProperties.resourceType) // 파싱된 json에서 'resourceType' 키값 가져와서 컬럼추가 
+| extend ResourceGroup = iff(isnull(split(ResourceId, "/", 4)[0]), 'None', (split(ResourceId, "/", 4)[0])) // ResourceID컬럼에서 리소스그룹명 추출, Null 이면 None 출력( 리소스 타입이 구독인 경우 리소스 그룹 Null) 
+| summarize Start_KST=arg_min(localTime, *), End_KST=arg_max(localTime, *), alert_count = count(DisplayName) by DisplayName, Status, CompromisedEntity
+| order by Start_KST asc // 발생시간 기준 오름차순 정렬
+| extend  Start_KST_trans = format_datetime(Start_KST,'yyyy-MM-dd HH:mm') // 년/월/일/시/분 형식 변경
+| extend  End_KST_trans = format_datetime(End_KST,'yyyy-MM-dd HH:mm') // 년/월/일/시/분 형식 변경
+| extend Num = row_number() //출력행마다 Num 번호 출력
+| extend Alert_Date = iff(Start_KST_trans!=End_KST_trans, strcat(Start_KST_trans, " ~ ", End_KST_trans), Start_KST_trans) // 경고 시각 같으면 경고 최초 발생시간만 출력
+| extend alert_count_stauts = strcat(alert_count,"건^","(",Status,")")
+| extend Entiti_info = strcat("• 영향 리소스 :^",CompromisedEntity,"^","• 리소스 그룹 :^",ResourceGroup,"^","• 리소스 타입 :^",ResourceType)
+| project Num, Alert_Date, DisplayName, alert_count_stauts, Entiti_info,  AlertSeverity, Tactics, RemediationSteps 
+

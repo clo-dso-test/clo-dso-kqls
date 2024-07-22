@@ -1,0 +1,46 @@
+let startOfToday = startofday(now()); 
+let offsetWeek = 6d; 
+let offsetMonth = 29d; 
+let lookbackDurationWeek = 14d; 
+let lookbackDurationMonth = 45d; 
+let endTimeWeek = startOfToday - offsetWeek; 
+let startTimeWeek = endTimeWeek - lookbackDurationWeek; 
+let endTimeMonth = startOfToday - offsetMonth; 
+let startTimeMonth = endTimeMonth - lookbackDurationMonth; 
+SecureScores 
+| extend Scope = iff(AssessedResourceId has "securityConnectors", split(AssessedResourceId, "/providers/Microsoft.Security/secureScores/")[0], tostring(SecureScoresSubscriptionId))
+| extend Day = startofday(TimeGenerated) 
+| summarize arg_max(TimeGenerated, *) by Day, Scope 
+| summarize arg_max(Day, *) by Scope 
+| join kind = fullouter( 
+    SecureScores 
+    | extend Scope = iff(AssessedResourceId has "securityConnectors", split(AssessedResourceId, "/providers/Microsoft.Security/secureScores/")[0], tostring(SecureScoresSubscriptionId))
+    | extend Day = startofday(TimeGenerated) 
+    | where TimeGenerated > startTimeWeek and TimeGenerated <= endTimeWeek 
+    | summarize arg_max(TimeGenerated, *) by Scope 
+    | project OldScoreSevenDays = PercentageScore, SecureScoresSubscriptionId, Scope 
+    ) 
+    on Scope 
+| join kind = fullouter( 
+    SecureScores 
+    | extend Scope = iff(AssessedResourceId has "securityConnectors", split(AssessedResourceId, "/providers/Microsoft.Security/secureScores/")[0], tostring(SecureScoresSubscriptionId))
+    | extend Day = startofday(TimeGenerated) 
+    | where TimeGenerated > startTimeMonth and TimeGenerated <= endTimeMonth 
+    | summarize arg_max(TimeGenerated, *) by Scope 
+    | project OldMonthScore = PercentageScore, Scope
+    ) 
+    on Scope 
+| join kind = fullouter( 
+    SecureScores 
+    | extend Scope = iff(AssessedResourceId has "securityConnectors", split(AssessedResourceId, "/providers/Microsoft.Security/secureScores/")[0], tostring(SecureScoresSubscriptionId))
+    | extend withGraceExcluded = toint(AssessedResourceId  has "scoreGraceExcluded")
+    | summarize arg_max(TimeGenerated ,*) by Scope, DisplayName 
+    | project ascScore = PercentageScore, scoreGraceExcluded = iff(withGraceExcluded == 1, todouble(PercentageScore * 100), dynamic(null)), withGraceExcluded, Scope
+    ) 
+    on Scope 
+| summarize arg_max(withGraceExcluded, *) by Scope
+| extend DiffSevenDays = tostring(((PercentageScore - OldScoreSevenDays) / OldScoreSevenDays) * 100) 
+| extend DiffSevenDays = iff(isempty(DiffSevenDays), "", DiffSevenDays) 
+//| extend DiffMonth = tostring(((PercentageScore - OldMonthScore) / OldMonthScore) * 100) 
+//| extend DiffMonth = iff(isempty(DiffMonth), "", DiffMonth) 
+| project Scope, CurrentScore = PercentageScore * 100, todouble(DiffSevenDays)

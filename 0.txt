@@ -1,0 +1,47 @@
+securityresources
+| where type =~ 'microsoft.security/pricings'
+| extend pricingTier = properties.pricingTier, subPlan = properties.subPlan
+| extend planSet = pack(name, level = case(isnotempty(subPlan),subPlan,pricingTier))
+| summarize defenderPlans = make_bag(planSet) by subscriptionId, type
+| project subscriptionId, 
+    DefenderCSPM_plan = defenderPlans.CloudPosture,
+    VirtualMachines_plan = defenderPlans.VirtualMachines,
+    AppServices_plan = defenderPlans.AppServices,
+    SqlServers_plan = defenderPlans.SqlServers,
+    SqlServerVirtualMachines_plan = defenderPlans.SqlServerVirtualMachines,
+    OpenSourceRelationalDatabases_plan = defenderPlans.OpenSourceRelationalDatabases,
+    CosmosDB_plan = defenderPlans.CosmosDbs,
+    StorageAccounts_plan = defenderPlans.StorageAccounts,
+    Containers_plan = defenderPlans.Containers,
+    KeyVaults_plan = defenderPlans.KeyVaults,
+    Arm_plan = defenderPlans.Arm
+| join kind = leftouter (
+    resources
+    | summarize VirtualMachines_total = tostring(countif(type in ('microsoft.compute/virtualmachines', 'microsoft.compute/virtualmachinescalesets', 'microsoft.hybridcompute/machines'))), //VM,VMSS,Arc
+                AppServices_total = tostring(countif(type == 'microsoft.web/sites')), //앱 서비스
+                SqlServers_total = tostring(countif(type in ('microsoft.sql/servers','microsoft.sql/managedinstances','microsoft.synapse/workspaces'))), // sql서버
+                SqlServerVirtualMachines_total = tostring(countif(type=='Microsoft.sqlvirtualMachines/sqlvirtualMachines')), //VM SQL 서버
+                OpenSourceRelationalDatabases_total = tostring(countif(type in("microsoft.dbforpostgresql/flexibleservers", "microsoft.dbforpostgresql/servers", "microsoft.dbformariadb/servers", "microsoft.dbformysql/servers"))),
+                CosmosDB_total = tostring(countif(type=="microsoft.documentdb/databaseaccounts")),
+                StorageAccounts_total = tostring(countif(type=="microsoft.storage/storageaccounts")),
+                Containers_total = tostring(countif(type in ("microsoft.containerservice/managedclusters", "microsoft.containerregistry/registries"))),
+                KeyVaults_total = tostring(countif(type=="microsoft.keyvault/vaults"))
+    by subscriptionId
+) on subscriptionId
+| join kind = leftouter (
+    resourcecontainers
+    | where type =~ "microsoft.resources/subscriptions"
+    | summarize Arm_total = tostring(countif (type =~ "microsoft.resources/subscriptions")) by subscriptionId, name
+) on subscriptionId
+| extend DefenderCSPM = iff(DefenderCSPM_plan=="Free", "OFF", "ON"),
+         VirtualMachines = iff(VirtualMachines_plan=="Free", strcat("OFF^(",VirtualMachines_total,")"), strcat("ON^(",VirtualMachines_total,")")),
+         AppServices = iff(AppServices_plan=="Free", strcat("OFF^(",AppServices_total,")"), strcat("ON^(",AppServices_total,")")),
+         SqlServers = iff(SqlServers_plan=="Free", strcat("OFF^(",SqlServers_total,")"), strcat("ON^(",SqlServers_total,")")),
+         SqlServerVirtualMachines = iff(SqlServerVirtualMachines_plan=="Free", strcat("OFF^(",SqlServerVirtualMachines_total,")"), strcat("ON^(",SqlServerVirtualMachines_total,")")),
+         OpenSourceRelationalDatabases = iff(OpenSourceRelationalDatabases_plan=="Free", strcat("OFF^(",OpenSourceRelationalDatabases_total,")"), strcat("ON^(",OpenSourceRelationalDatabases_total,")")),
+         CosmosDB = iff(CosmosDB_plan=="Free", strcat("OFF^(",CosmosDB_total,")"), strcat("ON^(",CosmosDB_total,")")),
+         StorageAccounts = iff(StorageAccounts_plan=="Free", strcat("OFF^(",StorageAccounts_total,")"), strcat("ON^(",StorageAccounts_total,")")),
+         Containers = iff(Containers_plan=="Free", strcat("OFF^(",Containers_total,")"), strcat("ON^(",Containers_total,")")),
+         KeyVaults = iff(KeyVaults_plan=="Free", strcat("OFF^(",KeyVaults_total,")"), strcat("ON^(",KeyVaults_total,")")),
+         Arm = iff(Arm_plan=="Free", strcat("OFF^(",Arm_total,")"), strcat("ON^(",Arm_total,")"))
+| project subscriptionId, DefenderCSPM, VirtualMachines, AppServices, SqlServers, SqlServerVirtualMachines, OpenSourceRelationalDatabases, CosmosDB, StorageAccounts, Containers, KeyVaults, Arm

@@ -1,0 +1,23 @@
+arg("").securityresources
+| where type =~ "microsoft.security/assessments/subassessments"
+| extend assessmentKey = split(id, "/", 12)[0] // 스캐너 평가키 추출
+| where assessmentKey == "c609cf0f-71ab-41e9-a3c6-9a1f7fe1b8d5" // 평가키 AKS MDVM 기반 조회
+| where properties.status.code == "Unhealthy"
+| extend clusterName = tostring(properties.additionalData.clusterDetails.clusterName), //AKS 클러스터명 추출
+         cluster_detail_name = tostring(properties.resourceDetails.id), 
+         imageName = tostring(split(properties.resourceDetails.id, "@", 0)[0]), //이미지명 추출
+         OS = tostring(properties.additionalData.softwareDetails.osDetails.osPlatform), //OS 추출
+         Container_name = tostring(properties.additionalData.kubernetesContext.workloads[0].ownedResources[0].containers[0].name), // Container_name추출
+         podName = tostring(properties.additionalData.kubernetesContext.workloads[0].ownedResources[0].name), // Pod명 추출
+         Controller_type = tostring(properties.additionalData.kubernetesContext.workloads[0].kind), //Controller_type 추출
+         nameSpace = tostring(properties.additionalData.kubernetesContext.workloads[0].namespace), //namespace추출
+         severity = tostring(properties.additionalData.vulnerabilityDetails.severity) //심각도 추출
+| summarize SeverityTotal = count(), 
+            Critical = countif(severity=="Critical"),
+            High = countif(severity=="High"),
+            Medium = countif(severity=="Medium"),
+            Low = countif(severity=="Low") by clusterName, imageName, OS, Container_name, podName, Controller_type, nameSpace
+| order by clusterName asc, SeverityTotal desc
+| extend RowNumber = row_number(1, clusterName != prev(clusterName))
+| where RowNumber <= 5 // clusterName기준 Top5 컬럼까지만 출력
+| project-away RowNumber 

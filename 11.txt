@@ -1,0 +1,17 @@
+arg("").securityresources
+| where type == "microsoft.security/assessments/subassessments"
+| extend Resource = tolower(extract(@'(?i)(.*?)/providers/Microsoft.Security/([^/]+)', 1, id))
+| extend assessmentKey = extract(".*assessments/(.+?)/.*",1,  id) 
+| extend ResourceType = strcat(tolower(split(id,"/").[6]), "/",tolower(split(id,"/").[7]))
+| extend severity = tostring(properties.additionalData.vulnerabilityDetails.severity)
+| extend Status = tostring(properties.status.code)
+| extend ResourceGroup = tolower(trim_end("/",extract(".*resourceGroups/(.+?)/",0,id)))
+| extend vulId = tostring(properties.id)
+| where assessmentKey == "c609cf0f-71ab-41e9-a3c6-9a1f7fe1b8d5" and Status == 'Unhealthy'
+| where ResourceType in~ ('microsoft.containerservice/managedclusters','microsoft.kubernetes/connectedclusters') 
+| distinct vulId, severity
+| summarize Total = count(),
+            Critical = countif(severity == "Critical"),
+            High = countif(severity == "High"),
+            Medium = countif(severity == "Medium"),
+            Low = countif(severity == "Low")

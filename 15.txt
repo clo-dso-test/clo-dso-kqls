@@ -1,0 +1,17 @@
+arg("").securityresources
+| where type =~ "microsoft.security/assessments/subassessments"
+| where properties.status.code == "Unhealthy"
+| extend assessmentKey = split(id, "/", 12)[0] // 스캐너 평가키 추출
+| where assessmentKey == "c0b7cfc6-3172-465a-b378-53c7ff2cc0d5" // 평가키 ACR MDVM 기반 조회
+| extend ACR_Name = tostring(split(properties.additionalData.artifactDetails.registryHost, ".",0)[0]),
+         repositoryName = tostring(properties.additionalData.artifactDetails.repositoryName),
+         repositoryDigest = tostring(properties.additionalData.artifactDetails.digest),
+         severity = tostring(properties.additionalData.vulnerabilityDetails.severity)
+| summarize Total_vulnerable_image=dcount(repositoryDigest),
+            Total_vulnerable = count(), 
+            Critical = countif(severity=="Critical"),
+            High = countif(severity=="High"),
+            Medium = countif(severity=="Medium"),
+            Low = countif(severity=="Low")
+            by subscriptionId, ACR_Name
+| order by ACR_Name asc

@@ -1,0 +1,13 @@
+arg("").securityresources
+| where type == "microsoft.security/assessments/subassessments"
+| extend assessmentKey = tostring(split(id, "/", 12)[0]) // 스캐너 평가키 추출
+| where assessmentKey == "f97aa83c-9b63-4f9a-99f6-b22c4398f936" or assessmentKey == "82e20e14-edc5-4373-bfc4-f13121257c37"
+| extend DB_resourcename = tostring(split(properties.resourceDetails.id, "/", 8)[0]),
+         DB_name = tostring(split(properties.resourceDetails.id, "/", 10)[0]), 
+         Status = tostring(properties.status.code),
+         Severity = tostring(properties.status.severity)
+| where Status == "Unhealthy"
+| summarize Unhealty_DB_resource = dcount(DB_resourcename),
+            Unhealty_Databases= dcount(DB_name),
+            Total_vulerable = count(), 
+            sevH=countif(Severity=='High'), sevM=countif(Severity=='Medium'), sevL=countif(Severity=='Low')

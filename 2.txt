@@ -12,10 +12,10 @@ arg("").securityresources
         | extend status = trim(" ", tostring(properties.status.code))
         | extend cause = trim(" ", tostring(properties.status.cause))
         | extend assessmentKey = tostring(name)
-        | where assessmentKey == "06e3a6db-6c0c-4ad9-943f-31d9d73ecf6c"
-        | summarize Agent_install=toreal(countif(status=="Healthy")), // 에이전트 설치됨
-                    Agent_Not_install=toreal(countif(status=="Unhealthy")), // 에이전트 설치안됨
+        | where assessmentKey == "dc5357d0-3858-4d17-a1a3-072840bff5be"
+        | summarize Healthy=toreal(countif(status=="Healthy")), // 정상
+                    Unhealthy=toreal(countif(status=="Unhealthy")), // 비정상
                     NotApplicable = toreal(countif(status=="NotApplicable")), //해당없음
                     Total=count()
-        | extend install_rate=strcat(round((Agent_install/(Total-NotApplicable))*100, 1), "%") // 에이전트 설치율
-        | project install_rate, Agent_install, Agent_Not_install, NotApplicable, Total
+        | extend rate=strcat(round((Healthy/(Total-NotApplicable))*100, 1), "%") // 준수율
+        | project rate, Healthy, Unhealthy, NotApplicable, Total

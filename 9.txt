@@ -1,0 +1,11 @@
+arg("").securityresources
+| where type == "microsoft.security/assessments/subassessments"
+| extend assessmentKey = extract(".*assessments/(.+?)/.*",1,  id)
+| where assessmentKey == "1195afff-c881-495e-9bc5-1486211ae03f"
+| extend VulId = tostring(properties.id), Severity = tostring(properties.status.severity), Status = tostring(properties.status.code)
+| where Status == 'Unhealthy'
+| summarize High = dcountif(VulId, Severity=="High"),
+            Medium = dcountif(VulId, Severity=="Medium"),
+            Low = dcountif(VulId, Severity=="Low")
+| extend Total = High+Medium+Low
+| project Total, High, Medium, Low
