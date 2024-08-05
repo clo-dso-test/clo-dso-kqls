@@ -95,6 +95,7 @@ securityresources
         | where not(displayName contains "[Preview]")
         | extend totalResourcesCount = criticalResourcesCount + highResourcesCount + mediumResourcesCount + lowResourcesCount
         | where totalResourcesCount != 0
-        | project displayName, totalResourcesCount, criticalResourcesCount, highResourcesCount, mediumResourcesCount, lowResourcesCount
+        | extend url = strcat("https://portal.azure.com/#blade/Microsoft_Azure_Security/RecommendationsBlade/assessmentKey/",assessmentKey)
+        | project displayName, totalResourcesCount, criticalResourcesCount, highResourcesCount, mediumResourcesCount, lowResourcesCount, url
         | order by criticalResourcesCount desc, highResourcesCount desc, mediumResourcesCount desc, lowResourcesCount desc
         | limit 5
