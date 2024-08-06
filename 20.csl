@@ -2,13 +2,18 @@ securityresources
 | where type == "microsoft.security/attackpaths"
 | mv-expand entities = properties.graphComponent.entities
 | extend
+    Title = tostring(properties.displayName),
     riskLevel = tostring(properties.riskLevel),
+    entry_entityName = tostring(properties.entryPoint.entityName),
+    entityType = tostring(properties.entryPoint.entityType),
+    target_entityName = tostring(properties.target.entityName),
+    targetType = tostring(properties.target.entityType),
     entity_name = tostring(entities.entityName)
 | summarize
-    Total = count(),
+    Total = dcount(id),
     affected_resources = dcount(entity_name),
-    Critical = countif(riskLevel == "Critical"),
-    High = countif(riskLevel == "High"),
-    Medium = countif(riskLevel == "Medium"),
-    Low = countif(riskLevel == "Low")
+    Critical = dcountif(id, riskLevel == "Critical"),
+    High = dcountif(id, riskLevel == "High"),
+    Medium = dcountif(id, riskLevel == "Medium"),
+    Low = dcountif(id, riskLevel == "Low")
 
