@@ -1,4 +1,4 @@
-securityresources 
+arg("").securityresources 
 | where type == "microsoft.security/attackpaths"
 | mv-expand entities = properties.graphComponent.entities
 | extend
