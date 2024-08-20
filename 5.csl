@@ -1,3 +1,4 @@
+//Table//LA//
 let startOfToday = startofday(now()); 
 let offsetWeek = 6d; 
 let offsetMonth = 29d; 

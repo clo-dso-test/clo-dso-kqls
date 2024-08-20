@@ -1,3 +1,4 @@
+//Table//LA//
 arg("").securityresources
 	| where type =~ "microsoft.security/assessments" and properties.status.code =~ "Unhealthy"
 	| extend severity = tostring(properties.metadata.severity)

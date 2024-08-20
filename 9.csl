@@ -1,3 +1,4 @@
+//Table//LA//
 arg("").securityresources
 | where type == "microsoft.security/assessments/subassessments"
 | extend assessmentKey = extract(".*assessments/(.+?)/.*",1,  id)

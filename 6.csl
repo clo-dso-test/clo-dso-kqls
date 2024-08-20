@@ -1,3 +1,4 @@
+//Table//LA//
 arg("").securityresources
     | where type =~ "microsoft.security/assessments"
     | extend assessmentType = iff(type == "microsoft.security/assessments", tostring(properties.metadata.assessmentType), dynamic(null))
