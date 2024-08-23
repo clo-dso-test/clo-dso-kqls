@@ -1,4 +1,4 @@
-//Table//RG
+//Table//RG//
 securityresources
 | where type =~ 'microsoft.security/pricings'
 | extend pricingTier = properties.pricingTier, subPlan = properties.subPlan
