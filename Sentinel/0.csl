@@ -1,6 +1,6 @@
 SecurityIncident
 | extend KST_Time = datetime_utc_to_local(CreatedTime, 'Asia/Seoul') // UTC -> KST 변환
-| where KST_Time between (ago(30d) .. now()) // 현재 날짜에서 -6일
+| where KST_Time between (ago(30d) .. now()) // 현재 날짜에서 -30일
 | extend Tactics = todynamic(AdditionalData.tactics)
 | extend Owner = tostring(Owner.assignedTo) 
 | extend Product = tostring(parse_json(tostring(AdditionalData.alertProductNames))[0]) 
@@ -9,4 +9,10 @@ SecurityIncident
             Low = dcountif(IncidentNumber, Severity == 'Low')
             by bin(KST_Time, 1d)
 | order by KST_Time asc
-| project KST_Time, High, Medium, Low, High_Repeat = High
+| extend KST_Time = format_datetime(KST_Time, "yyyy-MM-dd") // 날짜 형식 변경
+| summarize 
+    KST_Time = make_list(KST_Time),
+    High = make_list(High),
+    Medium = make_list(Medium),
+    Low = make_list(Low),
+    High_Repeat = make_list(High)
