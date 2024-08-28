@@ -1,3 +1,4 @@
+//Chart//LA//
 SecurityIncident
 | extend KST_Time = datetime_utc_to_local(CreatedTime, 'Asia/Seoul') // UTC -> KST 변환
 | where KST_Time between (ago(30d) .. now()) // 현재 날짜에서 -30일
@@ -15,4 +16,4 @@ SecurityIncident
     High = make_list(High),
     Medium = make_list(Medium),
     Low = make_list(Low),
-    High_Repeat = make_list(High)
+    // High_Repeat = make_list(High)
