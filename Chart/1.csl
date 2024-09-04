@@ -1,0 +1,12 @@
+//Chart//LA//
+SecureScores
+| where MaxScore > 0
+| where TimeGenerated >= startofday(now()) - 7d and TimeGenerated <= startofday(now())
+| extend scopeScore = CurrentScore / MaxScore 
+| extend subScoreXsubWeight = scopeScore * Weight 
+| extend Day = format_datetime(startofday(TimeGenerated), 'yyyy-MM-dd')
+| summarize upperValue = sum(subScoreXsubWeight), underValue = sum(todouble(Weight)) by Day
+| extend OverallScore = 100 * ((upperValue) / (underValue))
+| project OverallScore = round(OverallScore, 0), Day
+| order by Day asc
+| summarize OverallScore = make_list(OverallScore), Day = make_list(Day)
