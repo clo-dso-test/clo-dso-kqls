@@ -5,8 +5,8 @@ SecureScores
 | extend scopeScore = CurrentScore / MaxScore 
 | extend subScoreXsubWeight = scopeScore * Weight 
 | extend Day = format_datetime(startofday(TimeGenerated), 'yyyy-MM-dd')
-| summarize upperValue = sum(subScoreXsubWeight), underValue = sum(todouble(Weight)) by Day
+| summarize upperValue = sum(subScoreXsubWeight), underValue = sum(todouble(Weight)) by Day, SecureScoresSubscriptionId
 | extend OverallScore = 100 * ((upperValue) / (underValue))
-| project OverallScore = round(OverallScore, 0), Day
+| project OverallScore = round(OverallScore, 0), Day, SecureScoresSubscriptionId
 | order by Day asc
-| summarize OverallScore = make_list(OverallScore), Day = make_list(Day)
+| summarize OverallScore = make_list(OverallScore), Day = make_list(Day) by SecureScoresSubscriptionId

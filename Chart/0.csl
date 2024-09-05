@@ -15,5 +15,5 @@ SecurityIncident
     KST_Time = make_list(KST_Time),
     High = make_list(High),
     Medium = make_list(Medium),
-    Low = make_list(Low),
+    Low = make_list(Low)
     // High_Repeat = make_list(High)
