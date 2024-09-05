@@ -44,4 +44,4 @@ SecureScores
 | extend DiffSevenDays = iff(isempty(DiffSevenDays), "", DiffSevenDays) 
 //| extend DiffMonth = tostring(((PercentageScore - OldMonthScore) / OldMonthScore) * 100) 
 //| extend DiffMonth = iff(isempty(DiffMonth), "", DiffMonth) 
-| project Scope, CurrentScore = round(PercentageScore * 100, 2),todouble(DiffSevenDays)
+| project Scope, CurrentScore = round(PercentageScore * 100, 0),todouble(DiffSevenDays)
