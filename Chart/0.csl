@@ -1,7 +1,7 @@
 //Chart//LA//
 SecurityIncident
 | extend KST_Time = datetime_utc_to_local(CreatedTime, 'Asia/Seoul') // UTC -> KST 변환
-| where KST_Time between (ago(30d) .. now()) // 현재 날짜에서 -30일
+| where KST_Time between (ago(7d) .. now())
 | extend Tactics = todynamic(AdditionalData.tactics)
 | extend Owner = tostring(Owner.assignedTo) 
 | extend Product = tostring(parse_json(tostring(AdditionalData.alertProductNames))[0]) 
