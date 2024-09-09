@@ -40,7 +40,7 @@ SecureScores
     ) 
     on Scope 
 | summarize arg_max(withGraceExcluded, *) by Scope
-| extend DiffSevenDays = tostring(((PercentageScore - OldScoreSevenDays) / OldScoreSevenDays) * 100) 
+| extend DiffSevenDays = tostring(round(((PercentageScore - OldScoreSevenDays) / OldScoreSevenDays) * 100,0))
 | extend DiffSevenDays = iff(isempty(DiffSevenDays), "", DiffSevenDays) 
 //| extend DiffMonth = tostring(((PercentageScore - OldMonthScore) / OldMonthScore) * 100) 
 //| extend DiffMonth = iff(isempty(DiffMonth), "", DiffMonth) 
