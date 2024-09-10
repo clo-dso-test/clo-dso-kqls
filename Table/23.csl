@@ -1,3 +1,4 @@
+//Table//LA//
 SecurityIncident
 | extend localTime = datetime_utc_to_local(FirstActivityTime, 'Asia/Seoul') // UTC -> KST 변환
 | where localTime between (datetime_utc_to_local(ago(7d), 'Asia/Seoul') .. datetime_utc_to_local(now(), 'Asia/Seoul'))
