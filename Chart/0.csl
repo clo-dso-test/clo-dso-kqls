@@ -11,9 +11,11 @@ SecurityIncident
             by bin(KST_Time, 1d)
 | order by KST_Time asc
 | extend KST_Time = format_datetime(KST_Time, "yyyy-MM-dd") // 날짜 형식 변경
+| extend Total = High + Medium + Low
 | summarize 
     KST_Time = make_list(KST_Time),
     High = make_list(High),
     Medium = make_list(Medium),
-    Low = make_list(Low)
+    Low = make_list(Low),
+    Total = make_list(Total)
     // High_Repeat = make_list(High)
