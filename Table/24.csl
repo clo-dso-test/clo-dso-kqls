@@ -1,0 +1,18 @@
+//Table//LA//
+let startDate = startofday(datetime_utc_to_local(now(), 'Asia/Seoul') - 7d); // 오늘로부터 7일 전 시작 (00:00 KST)
+let endDate = startofday(datetime_utc_to_local(now(), 'Asia/Seoul')) - 1s; // 어제의 마지막 순간 (23:59:59 KST)
+let syslogData =
+   Syslog
+   | extend localTime = datetime_utc_to_local(TimeGenerated, 'Asia/Seoul') // 한국 시간으로 변환
+   | where _IsBillable == true
+   | where localTime between (startDate .. endDate) // 7일 전 00:00부터 어제 23:59:59까지
+   | extend DeviceVendor = "Unknown" //replace
+   | summarize totalGB = sum(_BilledSize) / 1000000000, 
+               minLocalTime = min(localTime), 
+               maxLocalTime = max(localTime) 
+           by DeviceVendor
+   | extend dateRange = strcat(format_datetime(minLocalTime, 'yyyy-MM-dd HH:mm:ss'), " ~ ", format_datetime(maxLocalTime, 'yyyy-MM-dd HH:mm:ss')),
+            Type = "Syslog"
+   | project dateRange, DeviceVendor, totalGB, Type;
+syslogData
+| project dateRange, DeviceVendor, Type, totalGB = strcat(tostring(round(totalGB, 3)), " GB")
