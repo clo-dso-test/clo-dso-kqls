@@ -1,12 +1,15 @@
 //Chart//LA//
 SecureScores
 | where MaxScore > 0
-| where TimeGenerated >= startofday(now()) - 7d and TimeGenerated <= startofday(now())
+| where TimeGenerated >= startofday(now()) - 56d and TimeGenerated <= startofday(now())  // 최대 8주 전부터 오늘까지
 | extend scopeScore = CurrentScore / MaxScore 
 | extend subScoreXsubWeight = scopeScore * Weight 
-| extend Day = format_datetime(startofday(TimeGenerated), 'yyyy-MM-dd')
-| summarize upperValue = sum(subScoreXsubWeight), underValue = sum(todouble(Weight)) by Day, SecureScoresSubscriptionId
-| extend OverallScore = 100 * ((upperValue) / (underValue))
-| project OverallScore = round(OverallScore, 0), Day, SecureScoresSubscriptionId
-| order by Day asc
-| summarize OverallScore = make_list(OverallScore), Day = make_list(Day) by SecureScoresSubscriptionId
+| extend DaysAgo = bin(datetime_diff('day', now(), TimeGenerated), 7)  // 7일 단위로 묶기
+| extend EndDate = startofday(now() - DaysAgo * 1d)  // 각 7일 범위의 종료일
+| extend StartDate = EndDate - 6d  // 각 7일 범위의 시작일
+| project SecureScoresSubscriptionId, scopeScore, subScoreXsubWeight, Weight, StartDate, EndDate
+| summarize upperValue = sum(subScoreXsubWeight), underValue = sum(todouble(Weight)) by StartDate, EndDate, SecureScoresSubscriptionId
+| extend OverallScore = 100 * (upperValue / underValue)
+| project OverallScore = round(OverallScore, 0), StartDate, EndDate, SecureScoresSubscriptionId
+| order by StartDate asc
+| summarize OverallScore = make_list(OverallScore), DateRange = make_list(strcat(format_datetime(StartDate, 'yy/MM/dd'), " ~ ", format_datetime(EndDate, 'yy/MM/dd'))) by SecureScoresSubscriptionId
