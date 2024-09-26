@@ -1,10 +1,7 @@
 //Chart//LA//
 SecurityIncident
 | extend KST_Time = datetime_utc_to_local(CreatedTime, 'Asia/Seoul') // UTC -> KST 변환
-| where KST_Time between (ago(7d) .. now())
-| extend Tactics = todynamic(AdditionalData.tactics)
-| extend Owner = tostring(Owner.assignedTo) 
-| extend Product = tostring(parse_json(tostring(AdditionalData.alertProductNames))[0]) 
+| where KST_Time between (startofday(ago(7d)) .. endofday(ago(1d)))
 | summarize High = dcountif(IncidentNumber, Severity == 'High'),
             Medium = dcountif(IncidentNumber, Severity == 'Medium'),
             Low = dcountif(IncidentNumber, Severity == 'Low')

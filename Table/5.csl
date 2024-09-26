@@ -13,7 +13,7 @@ SecureScores
 | extend Day = startofday(TimeGenerated) 
 | summarize arg_max(TimeGenerated, *) by Day, Scope 
 | summarize arg_max(Day, *) by Scope 
-| join kind = fullouter( 
+| join kind = inner( 
     SecureScores 
     | extend Scope = iff(AssessedResourceId has "securityConnectors", split(AssessedResourceId, "/providers/Microsoft.Security/secureScores/")[0], tostring(SecureScoresSubscriptionId))
     | extend Day = startofday(TimeGenerated) 
@@ -45,3 +45,4 @@ SecureScores
 //| extend DiffMonth = tostring(((PercentageScore - OldMonthScore) / OldMonthScore) * 100) 
 //| extend DiffMonth = iff(isempty(DiffMonth), "", DiffMonth) 
 | project Scope, CurrentScore = round(PercentageScore * 100, 0),todouble(DiffSevenDays)
+| where isnotempty(Scope)
