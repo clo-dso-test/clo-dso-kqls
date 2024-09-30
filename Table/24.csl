@@ -6,7 +6,7 @@ let syslogData =
    | extend localTime = datetime_utc_to_local(TimeGenerated, 'Asia/Seoul') // 한국 시간으로 변환
    | where _IsBillable == true
    | where localTime between (startDate .. endDate) // 7일 전 00:00부터 어제 23:59:59까지
-   | extend DeviceVendor = "Unknown" //replace
+   | extend DeviceVendor = "Unknown" //Replace
    | summarize totalGB = sum(_BilledSize) / 1000000000, 
                minLocalTime = min(localTime), 
                maxLocalTime = max(localTime) 
@@ -14,5 +14,12 @@ let syslogData =
    | extend dateRange = strcat(format_datetime(minLocalTime, 'yyyy-MM-dd HH:mm:ss'), " ~ ", format_datetime(maxLocalTime, 'yyyy-MM-dd HH:mm:ss')),
             Type = "Syslog"
    | project dateRange, DeviceVendor, totalGB, Type;
+let totalRow =
+    syslogData
+    | summarize totalGB = sum(totalGB)
+    | extend DeviceVendor = "Total", dateRange = "전체 기간", Type = "Syslog";
+// 각각의 DeviceVendor 데이터와 마지막 줄에 총합 데이터를 추가
 syslogData
+| union (totalRow)
 | project dateRange, DeviceVendor, Type, totalGB = strcat(tostring(round(totalGB, 3)), " GB")
+| order by DeviceVendor != "Total", DeviceVendor asc
