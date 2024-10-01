@@ -1,7 +1,7 @@
 //Chart//LA//
 SecureScores
 | where MaxScore > 0
-| where TimeGenerated >= startofday(now()) - 56d and TimeGenerated <= startofday(now())  // 최대 8주 전부터 오늘까지
+| where TimeGenerated >= startofday(now()) - 27d and TimeGenerated < startofday(now())
 | extend scopeScore = CurrentScore / MaxScore 
 | extend subScoreXsubWeight = scopeScore * Weight 
 | extend DaysAgo = bin(datetime_diff('day', now(), TimeGenerated), 7)  // 7일 단위로 묶기
@@ -12,4 +12,6 @@ SecureScores
 | extend OverallScore = 100 * (upperValue / underValue)
 | project OverallScore = round(OverallScore, 0), StartDate, EndDate, SecureScoresSubscriptionId
 | order by StartDate asc
-| summarize OverallScore = make_list(OverallScore), DateRange = make_list(strcat(format_datetime(StartDate, 'yy/MM/dd'), " ~ ", format_datetime(EndDate, 'yy/MM/dd'))) by SecureScoresSubscriptionId
+| summarize OverallScoreList = make_list(OverallScore), DateRangeList = make_list(strcat(format_datetime(datetime_utc_to_local(StartDate, 'Asia/Seoul'), 'yy/MM/dd'), " ~ ", format_datetime(datetime_utc_to_local(EndDate, 'Asia/Seoul'), 'yy/MM/dd'))) by SecureScoresSubscriptionId
+| extend OverallScoreFinal = iif(array_length(OverallScoreList) < 4, array_concat(repeat("", 4 - array_length(OverallScoreList)), OverallScoreList), OverallScoreList) // 길이에 따라 빈 값 추가
+| project SecureScoresSubscriptionId, OverallScore = OverallScoreFinal, DateRange = DateRangeList
