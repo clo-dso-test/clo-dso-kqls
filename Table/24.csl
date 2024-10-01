@@ -21,5 +21,5 @@ let totalRow =
 // 각각의 DeviceVendor 데이터와 마지막 줄에 총합 데이터를 추가
 syslogData
 | union (totalRow)
-| project dateRange, DeviceVendor, Type, totalGB = strcat(tostring(round(totalGB, 3)), " GB")
+| project dateRange, DeviceVendor, Type, totalGB = round(totalGB, 3)
 | order by DeviceVendor != "Total", DeviceVendor asc
