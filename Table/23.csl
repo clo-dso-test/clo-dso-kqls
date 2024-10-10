@@ -1,7 +1,7 @@
 //Table//LA//
 SecurityIncident
 | extend KST_Time = datetime_utc_to_local(CreatedTime, 'Asia/Seoul') // UTC -> KST 변환
-| where KST_Time between (startofday(ago(8d)) .. endofday(ago(1d)))
+| where KST_Time between (startofday(ago(7d)) .. endofday(ago(1d)))
 | where Severity != "Informational"
 | extend Description = iif(isnull(Description), "", Description)
 | distinct Title, Description
