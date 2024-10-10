@@ -1,7 +1,7 @@
 //Table//LA//
 SecurityAlert 
 | extend localTime = datetime_utc_to_local(StartTime, 'Asia/Seoul') // UTC -> KST 변환
-| where localTime between (datetime_utc_to_local(ago(7d), 'Asia/Seoul') .. datetime_utc_to_local(now(), 'Asia/Seoul'))  // 12.01~12.07까지 현재 날짜 기준 이전 7일간의 로그 조회(보고서 발송일자 기준 '-7'일로 변수 설정 필요)  
+| where localTime between (datetime_utc_to_local(ago(8d), 'Asia/Seoul') .. datetime_utc_to_local(now()-1d, 'Asia/Seoul'))  //  
 | where ProductName == "Microsoft Defender for Cloud" or ProductName == "Azure Security Center"// MDC 경고만 필터(Sentinel 경고도 가져오는경우 해당 행 주석처리) 
 | extend ParsedExtendedProperties = parse_json(ExtendedProperties) // json구조로 변환 
 | extend ResourceType = tostring(ParsedExtendedProperties.resourceType) // 파싱된 json에서 'resourceType' 키값 가져와서 컬럼추가 
