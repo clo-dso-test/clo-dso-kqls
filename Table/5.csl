@@ -22,15 +22,15 @@ SecureScores
     | project OldScoreSevenDays = PercentageScore, SecureScoresSubscriptionId, Scope 
     ) 
     on Scope 
-| join kind = fullouter( 
-    SecureScores 
-    | extend Scope = iff(AssessedResourceId has "securityConnectors", split(AssessedResourceId, "/providers/Microsoft.Security/secureScores/")[0], tostring(SecureScoresSubscriptionId))
-    | extend Day = startofday(TimeGenerated) 
-    | where TimeGenerated > startTimeMonth and TimeGenerated <= endTimeMonth 
-    | summarize arg_max(TimeGenerated, *) by Scope 
-    | project OldMonthScore = PercentageScore, Scope
-    ) 
-    on Scope 
+//| join kind = fullouter( 
+//    SecureScores 
+//    | extend Scope = iff(AssessedResourceId has "securityConnectors", split(AssessedResourceId, "/providers/Microsoft.Security/secureScores/")[0], tostring(SecureScoresSubscriptionId))
+//    | extend Day = startofday(TimeGenerated) 
+//    | where TimeGenerated > startTimeMonth and TimeGenerated <= endTimeMonth 
+//    | summarize arg_max(TimeGenerated, *) by Scope 
+//    | project OldMonthScore = PercentageScore, Scope
+//    ) 
+//    on Scope 
 | join kind = fullouter( 
     SecureScores 
     | extend Scope = iff(AssessedResourceId has "securityConnectors", split(AssessedResourceId, "/providers/Microsoft.Security/secureScores/")[0], tostring(SecureScoresSubscriptionId))
@@ -40,7 +40,7 @@ SecureScores
     ) 
     on Scope 
 | summarize arg_max(withGraceExcluded, *) by Scope
-| extend DiffSevenDays = tostring(round(((PercentageScore - OldScoreSevenDays) / OldScoreSevenDays) * 100,0))
+| extend DiffSevenDays = tostring(round((PercentageScore - OldScoreSevenDays),0))
 | extend DiffSevenDays = iff(isempty(DiffSevenDays), "", DiffSevenDays) 
 //| extend DiffMonth = tostring(((PercentageScore - OldMonthScore) / OldMonthScore) * 100) 
 //| extend DiffMonth = iff(isempty(DiffMonth), "", DiffMonth) 
