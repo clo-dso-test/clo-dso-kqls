@@ -1,3 +1,4 @@
+//Table//LA//
 let startDate = startofday(datetime_utc_to_local(now(), 'Asia/Seoul') - 7d); // 오늘로부터 7일 전 시작 (00:00 KST)
 let endDate = startofday(datetime_utc_to_local(now(), 'Asia/Seoul')) - 1s; // 어제의 마지막 순간 (23:59:59 KST)
 // 사용량 데이터 처리
