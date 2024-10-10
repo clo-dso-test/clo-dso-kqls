@@ -8,5 +8,5 @@ let usageData =
     | where IsBillable == true
     | where localTime between (startDate .. endDate) // 7일 전 00:00부터 어제 23:59:59까지
     | summarize size = round(sum(Quantity) / 1024, 2) // GB 단위로 요약하고 소수점 둘째 자리까지만 표시
-    | project ['Total data ingestion (GB)'] = size;
+    | project ['TotalGB'] = size;
 usageData
