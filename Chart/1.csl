@@ -1,7 +1,7 @@
 //Chart//LA//
 SecureScores
 | where MaxScore > 0
-| where TimeGenerated >= startofday(ago(28d) + 9h)-9h  and TimeGenerated < endofday(ago(1d) + 9h)-9h
+| where TimeGenerated between (startofday(ago(28d)) .. endofday(ago(1d)))
 | extend scopeScore = CurrentScore / MaxScore 
 | extend subScoreXsubWeight = scopeScore * Weight 
 | extend DaysAgo = bin(datetime_diff('day', now(), TimeGenerated), 7)  // 7일 단위로 묶기
