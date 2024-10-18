@@ -1,18 +1,35 @@
 //Chart//LA//
 SecureScores
 | where MaxScore > 0
-| where TimeGenerated >= datetime_utc_to_local(startofday(now()) - 28d, 'Asia/Seoul')
-      and TimeGenerated < datetime_utc_to_local(startofday(now() - 1d), 'Asia/Seoul')
+| extend KST_Time = datetime_utc_to_local(TimeGenerated, 'Asia/Seoul') // UTC -> KST 변환
+| where KST_Time >= datetime_utc_to_local(startofday(now()) - 28d, 'Asia/Seoul') -9h
+    and KST_Time < datetime_utc_to_local(startofday(now()), 'Asia/Seoul') -9h
 | extend scopeScore = CurrentScore / MaxScore 
 | extend subScoreXsubWeight = scopeScore * Weight 
-| extend DaysAgo = bin(datetime_diff('day', now(), TimeGenerated), 7)  // 7일 단위로 묶기
-| extend EndDate = startofday(now() - DaysAgo * 1d)  // 각 7일 범위의 종료일
-| extend StartDate = EndDate - 6d  // 각 7일 범위의 시작일
-| project SecureScoresSubscriptionId, scopeScore, subScoreXsubWeight, Weight, StartDate, EndDate
+| extend DaysAgo = bin(datetime_diff('day', now() - 1d, KST_Time), 7)  // 7일 단위로 묶기
+| extend EndDate = endofday(startofday(now() - 1d) - DaysAgo * 1d) - 9h  // 각 7일 범위의 종료일
+| extend StartDate = startofday(EndDate - 6d) - 9h// 각 7일 범위의 시작일
+| project
+    SecureScoresSubscriptionId,
+    scopeScore,
+    subScoreXsubWeight,
+    Weight,
+    StartDate,
+    EndDate
 | summarize upperValue = sum(subScoreXsubWeight), underValue = sum(todouble(Weight)) by StartDate, EndDate, SecureScoresSubscriptionId
 | extend OverallScore = 100 * (upperValue / underValue)
-| project OverallScore = round(OverallScore, 0), StartDate, EndDate, SecureScoresSubscriptionId
+| project
+    OverallScore = round(OverallScore, 0),
+    StartDate,
+    EndDate,
+    SecureScoresSubscriptionId
 | order by StartDate asc
-| summarize OverallScoreList = make_list(OverallScore), DateRangeList = make_list(strcat(format_datetime(datetime_utc_to_local(StartDate, 'Asia/Seoul'), 'yy/MM/dd'), " ~ ", format_datetime(datetime_utc_to_local(EndDate, 'Asia/Seoul'), 'yy/MM/dd'))) by SecureScoresSubscriptionId
+| summarize
+    OverallScoreList = make_list(OverallScore),
+    DateRangeList = make_list(strcat(format_datetime(datetime_utc_to_local(StartDate, 'Asia/Seoul'), 'yy/MM/dd'), " ~ ", format_datetime(datetime_utc_to_local(EndDate, 'Asia/Seoul'), 'yy/MM/dd')))
+    by SecureScoresSubscriptionId
 | extend OverallScoreFinal = iif(array_length(OverallScoreList) < 4, array_concat(repeat("", 4 - array_length(OverallScoreList)), OverallScoreList), OverallScoreList) // 길이에 따라 빈 값 추가
-| project SecureScoresSubscriptionId, OverallScore = OverallScoreFinal, DateRange = DateRangeList
+| project
+    SecureScoresSubscriptionId,
+    OverallScore = OverallScoreFinal,
+    DateRange = DateRangeList
