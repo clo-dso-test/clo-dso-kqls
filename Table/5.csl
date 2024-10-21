@@ -1,48 +1,30 @@
 //Table//LA//
-let startOfToday = startofday(now()); 
-let offsetWeek = 6d; 
-let offsetMonth = 29d; 
-let lookbackDurationWeek = 14d; 
-let lookbackDurationMonth = 45d; 
-let endTimeWeek = startOfToday - offsetWeek; 
-let startTimeWeek = endTimeWeek - lookbackDurationWeek; 
-let endTimeMonth = startOfToday - offsetMonth; 
-let startTimeMonth = endTimeMonth - lookbackDurationMonth; 
-SecureScores 
-| extend Scope = iff(AssessedResourceId has "securityConnectors", split(AssessedResourceId, "/providers/Microsoft.Security/secureScores/")[0], tostring(SecureScoresSubscriptionId))
-| extend Day = startofday(TimeGenerated) 
-| summarize arg_max(TimeGenerated, *) by Day, Scope 
-| summarize arg_max(Day, *) by Scope 
-| join kind = inner( 
-    SecureScores 
-    | extend Scope = iff(AssessedResourceId has "securityConnectors", split(AssessedResourceId, "/providers/Microsoft.Security/secureScores/")[0], tostring(SecureScoresSubscriptionId))
-    | extend Day = startofday(TimeGenerated) 
-    | where TimeGenerated > startTimeWeek and TimeGenerated <= endTimeWeek 
-    | summarize arg_max(TimeGenerated, *) by Scope 
-    | project OldScoreSevenDays = PercentageScore, SecureScoresSubscriptionId, Scope 
-    ) 
-    on Scope 
-//| join kind = fullouter( 
-//    SecureScores 
-//    | extend Scope = iff(AssessedResourceId has "securityConnectors", split(AssessedResourceId, "/providers/Microsoft.Security/secureScores/")[0], tostring(SecureScoresSubscriptionId))
-//    | extend Day = startofday(TimeGenerated) 
-//    | where TimeGenerated > startTimeMonth and TimeGenerated <= endTimeMonth 
-//    | summarize arg_max(TimeGenerated, *) by Scope 
-//    | project OldMonthScore = PercentageScore, Scope
-//    ) 
-//    on Scope 
-| join kind = fullouter( 
-    SecureScores 
-    | extend Scope = iff(AssessedResourceId has "securityConnectors", split(AssessedResourceId, "/providers/Microsoft.Security/secureScores/")[0], tostring(SecureScoresSubscriptionId))
-    | extend withGraceExcluded = toint(AssessedResourceId  has "scoreGraceExcluded")
-    | summarize arg_max(TimeGenerated ,*) by Scope, DisplayName 
-    | project ascScore = PercentageScore, scoreGraceExcluded = iff(withGraceExcluded == 1, todouble(PercentageScore * 100), dynamic(null)), withGraceExcluded, Scope
-    ) 
-    on Scope 
-| summarize arg_max(withGraceExcluded, *) by Scope
-| extend DiffSevenDays = tostring(round((PercentageScore - OldScoreSevenDays),0))
-| extend DiffSevenDays = iff(isempty(DiffSevenDays), "", DiffSevenDays) 
-//| extend DiffMonth = tostring(((PercentageScore - OldMonthScore) / OldMonthScore) * 100) 
-//| extend DiffMonth = iff(isempty(DiffMonth), "", DiffMonth) 
-| project Scope, CurrentScore = round(PercentageScore * 100, 0),todouble(DiffSevenDays)
-| where isnotempty(Scope)
+// 1. 모든 구독 ID를 distinct로 가져옴
+let allSubscriptions = SecureScores
+| where MaxScore > 0
+| distinct SecureScoresSubscriptionId;
+// 2. 점수 데이터를 가져옴
+let scores = SecureScores
+| where MaxScore > 0
+| where TimeGenerated >= datetime_utc_to_local(startofday(now()) - 14d, 'Asia/Seoul') // 로그 조회 시점 기준 2주전까지 데이터 가져옴
+      and TimeGenerated < datetime_utc_to_local(startofday(now()), 'Asia/Seoul') // 로그 조회 시점 전날까지 데이터가져옴(로그 조회 당일날은 포함안되도록)
+| extend scopeScore = round(PercentageScore * 100, 0)
+| extend DaysAgo = bin(datetime_diff('day', now(), TimeGenerated), 7)  // 7일 단위로 묶기
+| project SecureScoresSubscriptionId, scopeScore, DaysAgo, TimeGenerated
+| summarize MaxTimeGenerated = max(TimeGenerated), arg_max(TimeGenerated, scopeScore) by SecureScoresSubscriptionId, DaysAgo;
+// 3. DaysAgo가 0인 경우와 7인 경우의 점수를 각각 가져오기
+let scoresCurrentWeek = scores
+| where DaysAgo == 0
+| project SecureScoresSubscriptionId, CurrentWeekScore = toint(scopeScore);
+let scoresLastWeek = scores
+| where DaysAgo == 7
+| project SecureScoresSubscriptionId, LastWeekScore = toint(scopeScore);
+// 4. 모든 구독 ID를 기준으로 점수 결합
+allSubscriptions
+| join kind=leftouter (scoresCurrentWeek) on SecureScoresSubscriptionId
+| join kind=leftouter (scoresLastWeek) on SecureScoresSubscriptionId
+| extend EffectiveLastWeekScore = coalesce(LastWeekScore, CurrentWeekScore)  // LastWeekScore가 null인 경우 CurrentWeekScore 사용
+| extend CurrentScore = coalesce(CurrentWeekScore, LastWeekScore)  // CurrentScore가 null인 경우 LastWeekScore 사용
+| extend DiffSevenDays = CurrentScore - EffectiveLastWeekScore  // 차이 계산
+| project Scope=SecureScoresSubscriptionId, CurrentScore, DiffSevenDays
+| order by Scope asc
