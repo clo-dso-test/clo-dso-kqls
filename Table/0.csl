@@ -23,7 +23,7 @@ securityresources
         VirtualMachines_total = tostring(countif(type in ('microsoft.compute/virtualmachines', 'microsoft.compute/virtualmachinescalesets', 'microsoft.hybridcompute/machines'))), //VM,VMSS,Arc
         AppServices_total = tostring(countif(type == 'microsoft.web/sites')), //앱 서비스
         SqlServers_total = tostring(countif(type in ('microsoft.sql/servers', 'microsoft.sql/managedinstances', 'microsoft.synapse/workspaces'))), // sql서버
-        SqlServerVirtualMachines_total = tostring(countif(type == 'Microsoft.sqlvirtualMachines/sqlvirtualMachines')), //VM SQL 서버
+        SqlServerVirtualMachines_total = tostring(countif(type == 'microsoft.sqlvirtualmachine/sqlvirtualmachines')), //VM SQL 서버
         OpenSourceRelationalDatabases_total = tostring(countif(type in("microsoft.dbforpostgresql/flexibleservers", "microsoft.dbforpostgresql/servers", "microsoft.dbformariadb/servers", "microsoft.dbformysql/servers"))),
         CosmosDB_total = tostring(countif(type == "microsoft.documentdb/databaseaccounts")),
         StorageAccounts_total = tostring(countif(type == "microsoft.storage/storageaccounts")),
