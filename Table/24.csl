@@ -1,12 +1,13 @@
-//Table//LA//
-let startDate = startofday(datetime_utc_to_local(now(), 'Asia/Seoul') - 7d); // 오늘로부터 7일 전 시작 (00:00 KST)
-let endDate = startofday(datetime_utc_to_local(now(), 'Asia/Seoul')) - 1s; // 어제의 마지막 순간 (23:59:59 KST)
+// Define date range
+let startDate = startofday(datetime_utc_to_local(now(), 'Asia/Seoul') - 7d); // 7 days ago
+let endDate = startofday(datetime_utc_to_local(now(), 'Asia/Seoul')) - 1s; // End of yesterday
+// Syslog data processing
 let syslogData =
    Syslog
-   | extend localTime = datetime_utc_to_local(TimeGenerated, 'Asia/Seoul') // 한국 시간으로 변환
+   | extend localTime = datetime_utc_to_local(TimeGenerated, 'Asia/Seoul') // Convert to local time
    | where _IsBillable == true
-   | where localTime between (startDate .. endDate) // 7일 전 00:00부터 어제 23:59:59까지
-   | extend DeviceVendor = "Unknown" //Replace
+   | where localTime between (startDate .. endDate) // Date range
+   | extend DeviceVendor =       "Unknown" //Replace
    | summarize totalGB = sum(_BilledSize) / 1000000000, 
                minLocalTime = min(localTime), 
                maxLocalTime = max(localTime) 
@@ -14,12 +15,37 @@ let syslogData =
    | extend dateRange = strcat(format_datetime(minLocalTime, 'yyyy-MM-dd HH:mm:ss'), " ~ ", format_datetime(maxLocalTime, 'yyyy-MM-dd HH:mm:ss')),
             Type = "Syslog"
    | project dateRange, DeviceVendor, totalGB, Type;
-let totalRow =
+// Total row for Syslog
+let totalSyslogRow =
     syslogData
     | summarize totalGB = sum(totalGB)
     | extend DeviceVendor = "Total", dateRange = "전체 기간", Type = "Syslog";
-// 각각의 DeviceVendor 데이터와 마지막 줄에 총합 데이터를 추가
-syslogData
-| union (totalRow)
+// CommonSecurityLog data processing
+let commonSecurityLogData =
+    CommonSecurityLog
+    | extend localTime = datetime_utc_to_local(TimeGenerated, 'Asia/Seoul')
+    | where _IsBillable == true
+    | where localTime between (startDate .. endDate)
+    | summarize totalGB = sum(_BilledSize) / 1000000000, 
+                minLocalTime = min(localTime), 
+                maxLocalTime = max(localTime) 
+            by DeviceVendor
+    | extend dateRange = strcat(format_datetime(minLocalTime, 'yyyy-MM-dd HH:mm:ss'), " ~ ", format_datetime(maxLocalTime, 'yyyy-MM-dd HH:mm:ss')),
+             Type = "CEF"
+    | project dateRange, DeviceVendor, totalGB, Type;
+// Total row for CommonSecurityLog
+let totalCommonSecurityLogRow =
+    commonSecurityLogData
+    | summarize totalGB = sum(totalGB)
+    | extend DeviceVendor = "Total", dateRange = "전체 기간", Type = "CEF";
+// Combine the data from both logs
+let combinedData = 
+    syslogData
+    | union (totalSyslogRow)
+    | union (commonSecurityLogData)
+    | union (totalCommonSecurityLogRow);
+// Final projection and ordering
+combinedData
 | project dateRange, DeviceVendor, Type, totalGB = round(totalGB, 3)
+| where totalGB <> 0
 | order by DeviceVendor != "Total", DeviceVendor asc
