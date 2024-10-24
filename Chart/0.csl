@@ -1,7 +1,8 @@
 //Chart//LA//
 SecurityIncident
 | extend KST_Time = datetime_utc_to_local(TimeGenerated, 'Asia/Seoul') // UTC -> KST 변환
-| where KST_Time between (startofday(ago(7d) + 9h)-9h .. endofday(ago(1d) + 9h)-9h)
+| where KST_Time >= datetime_utc_to_local(startofday(now()) - 7d, 'Asia/Seoul') -9h
+    and KST_Time < datetime_utc_to_local(startofday(now()), 'Asia/Seoul') -9h
 | summarize High = dcountif(IncidentNumber, Severity == 'High'),
             Medium = dcountif(IncidentNumber, Severity == 'Medium'),
             Low = dcountif(IncidentNumber, Severity == 'Low')
