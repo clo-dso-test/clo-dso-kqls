@@ -1,4 +1,4 @@
-// Define date range
+//Table//LA//
 let startDate = startofday(datetime_utc_to_local(now(), 'Asia/Seoul') - 7d); // 7 days ago
 let endDate = startofday(datetime_utc_to_local(now(), 'Asia/Seoul')) - 1s; // End of yesterday
 // Syslog data processing
