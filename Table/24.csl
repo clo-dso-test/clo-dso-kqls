@@ -40,6 +40,6 @@ let totalRow =
 // Final output including total row
 combinedData
 | union totalRow
-| extend totalGB = strcat(round(totalGB, 3), " GB") // Append "GB" after the value
+| extend totalGB = round(totalGB, 3) 
 | project dateRange, DeviceVendor, Type, totalGB
 | order by DeviceVendor != "Total", DeviceVendor asc
