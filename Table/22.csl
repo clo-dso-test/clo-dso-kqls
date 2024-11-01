@@ -23,7 +23,7 @@ securityresources
     source =~ "gcp", properties.resourceDetails.AzureResourceId,
     extract("^(?i)(.+)/providers/Microsoft.Security/assessments/.+$",1,id)
     )))), dynamic(null))
-| extend resourceName = iff(type == "microsoft.security/assessments", tostring(coalesce(properties.resourceDetails.ResourceName, properties.additionalData.CloudNativeResourceName, properties.additionalData.ResourceName, properties.additionalData.resourceName, split(resourceId, '/')[-1], extract(@"(.+)/(.+)", 2, resourceId))), dynamic(null))
+| extend resourceName = iff(type == "microsoft.security/assessments", tolower(tostring(coalesce(properties.resourceDetails.ResourceName, properties.additionalData.CloudNativeResourceName, properties.additionalData.ResourceName, properties.additionalData.resourceName, split(resourceId, '/')[-1], extract(@"(.+)/(.+)", 2, resourceId)))), dynamic(null))
 | extend resourceType = iff(type == "microsoft.security/assessments", tolower(properties.resourceDetails.ResourceType), dynamic(null))
 | extend riskLevelText = iff(type == "microsoft.security/assessments", tostring(properties.risk.level), dynamic(null))
 | extend riskLevel = iff(type == "microsoft.security/assessments", case(riskLevelText =~ "Critical", 4,
