@@ -1,4 +1,4 @@
-//Chart//LA//
+//Table//LA//
 // 1. 모든 구독 ID를 distinct로 가져옴
 let allSubscriptions = SecureScores
 | where MaxScore > 0
