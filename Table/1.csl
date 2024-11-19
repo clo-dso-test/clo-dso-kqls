@@ -20,3 +20,4 @@ arg("").securityresources
                     Total=count()
         | extend install_rate=strcat(round((Agent_install/(Total-NotApplicable))*100, 1), "%") // 에이전트 설치율
         | project install_rate, Agent_install, Agent_Not_install, NotApplicable, Total
+        | where install_rate != "NaN%" // NaN%인 경우 출력 제외

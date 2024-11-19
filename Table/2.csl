@@ -20,3 +20,4 @@ arg("").securityresources
                     Total=count()
         | extend rate=strcat(round((Healthy/(Total-NotApplicable))*100, 1), "%") // 준수율
         | project rate, Healthy, Unhealthy, NotApplicable, Total
+        | where rate != "NaN%" // NaN% 인 경우 제외
