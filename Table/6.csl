@@ -1,12 +1,12 @@
-//Table//LA//
-arg("").securityresources
+//Table//RG//
+securityresources
     | where type =~ "microsoft.security/assessments"
     | extend assessmentType = iff(type == "microsoft.security/assessments", tostring(properties.metadata.assessmentType), dynamic(null))
     | where (type == "microsoft.security/assessments" and (assessmentType in~ ("BuiltIn", "CustomerManaged")))
     | extend state = tostring(properties.status.code),
              severity = iff(type == "microsoft.security/assessments", tostring(properties.risk.level), dynamic(null))
     | summarize Healthy=toreal(countif(state=="Healthy")), 
-                Unhealthy=toreal(countif(state=="Unhealthy")),
+                Unhealthy=toreal(countif(state=="Unhealthy" and isnotempty(severity))),
                 Critical=countif(state=="Unhealthy" and severity == "Critical"),
                 High=countif(state=="Unhealthy" and severity == "High"),
                 Medium=countif(state=="Unhealthy" and severity == "Medium"),
