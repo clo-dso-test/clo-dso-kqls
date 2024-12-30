@@ -44,7 +44,7 @@ securityresources
         subAssessmentName == "Both full and quick scans are out of 7 days", 
         "Both full and quick scans are out of 7 days^: 전체 검사, 빠른 검사가 마지막 검사일 기준 7일이 지나면 비정상 리소스로 분류됩니다.",
         subAssessmentName == "Anti-virus is off or partially configured", 
-        "Anti-virus is off or partially configured^: 다음 조건 중 하나가 충족되면 비정상 리소스로 분류됩니다.^<Anti-Virus 비활성화 / 실시간 감시 비활성화 / 패시브 모드 활성화>",
+        "Anti-virus is off or partially configured^: 다음 조건 중 하나가 충족되면 비정상 리소스로 분류됩니다.^(Anti-Virus 비활성화 / 실시간 감시 비활성화 / 패시브 모드 활성화)",
         subAssessmentName // 기본값으로 원래 값 반환
     ),
     numOfResources
