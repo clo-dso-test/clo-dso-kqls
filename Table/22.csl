@@ -87,4 +87,5 @@ securityresources
 | order by criticalCount desc, highCount desc, mediumCount desc, lowCount desc, resourceName asc
 | where resourceType != "microsoft.security/azureiamuser" // 워크로드 관련 리소스만 보이게 필터
 | where resourceType != "microsoft.security/azureiamserviceprincipal" // 워크로드 관련 리소스만 보이게 필터
+| where resourceType != "subscription" // 워크로드 관련 리소스만 보이게 필터
 | limit 5
