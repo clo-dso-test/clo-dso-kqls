@@ -1,17 +1,20 @@
 //Table//RG//
 securityresources
-    | where type =~ "microsoft.security/assessments"
-    | extend assessmentType = iff(type == "microsoft.security/assessments", tostring(properties.metadata.assessmentType), dynamic(null))
-    | where (type == "microsoft.security/assessments" and (assessmentType in~ ("BuiltIn", "CustomerManaged")))
-    | extend state = tostring(properties.status.code),
-             severity = iff(type == "microsoft.security/assessments", tostring(properties.risk.level), dynamic(null))
-    | summarize Healthy=toreal(countif(state=="Healthy")), 
-                Unhealthy=toreal(countif(state=="Unhealthy" and isnotempty(severity))),
-                Critical=countif(state=="Unhealthy" and severity == "Critical"),
-                High=countif(state=="Unhealthy" and severity == "High"),
-                Medium=countif(state=="Unhealthy" and severity == "Medium"),
-                Low=countif(state=="Unhealthy" and severity == "Low")
-                by subscriptionId
-    | extend compliance_rate=strcat(round(Healthy/(Healthy + Unhealthy)*100 ,1), "%") // 준수율(소수점 2번째에서 반올림)
-    | project subscriptionId, Healthy, Unhealthy, compliance_rate, Critical, High, Medium, Low
-    | order by subscriptionId
+| where type =~ "microsoft.security/assessments"
+| extend assessmentType = iff(type == "microsoft.security/assessments", tostring(properties.metadata.assessmentType), dynamic(null))
+| where (type == "microsoft.security/assessments" and (assessmentType in~ ("BuiltIn", "CustomerManaged")))
+| extend state = tostring(properties.status.code),
+         severity = iff(type == "microsoft.security/assessments", tostring(properties.risk.level), dynamic(null))
+| summarize Healthy=toreal(countif(state=="Healthy")), 
+            Unhealthy=toreal(countif(state=="Unhealthy" and isnotempty(severity))),
+            Critical=countif(state=="Unhealthy" and severity == "Critical"),
+            High=countif(state=="Unhealthy" and severity == "High"),
+            Medium=countif(state=="Unhealthy" and severity == "Medium"),
+            Low=countif(state=="Unhealthy" and severity == "Low")
+            by subscriptionId
+| extend compliance_rate = iff(Healthy + Unhealthy > 0, strcat(round(Healthy / (Healthy + Unhealthy) * 100, 1), "%"), "평가되지 않음") // 준수율(소수점 2번째에서 반올림)
+| extend Healthy = iff(Unhealthy == 0, "-", tostring(toint(Healthy))), // 비준수 리소스가 0이면 평가되지 않음으로 간주
+         Unhealthy = iff(Unhealthy == 0, "-", tostring(toint(Unhealthy))),
+         compliance_rate = iff(Unhealthy == 0, "평가되지 않음", compliance_rate)
+| project subscriptionId, Healthy, Unhealthy, compliance_rate, Critical, High, Medium, Low
+| order by subscriptionId
