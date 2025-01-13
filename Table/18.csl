@@ -1,18 +1,28 @@
 //Table//LA//
-arg("").securityresources
-| where type == "microsoft.security/assessments/subassessments"
-| extend assessmentKey = tostring(split(id, "/", 12)[0]) // 스캐너 평가키 추출
-| where assessmentKey == "f97aa83c-9b63-4f9a-99f6-b22c4398f936" or assessmentKey == "82e20e14-edc5-4373-bfc4-f13121257c37"
-| extend DB_resourcename = tostring(split(properties.resourceDetails.id, "/", 8)[0]),
-         DB_name = tostring(split(properties.resourceDetails.id, "/", 10)[0]), 
-         Status = tostring(properties.status.code),
-         Severity = tostring(properties.status.severity)
-| summarize UnHealthy=countif(Status=="Unhealthy"),
-            Total_sacn=count(), 
-            UnHealthy_DB=dcountif(DB_name, Status=="Unhealthy"),
-            High = countif(Severity=="High" and Status=="Unhealthy"),
-            Medium = countif(Severity=="Medium" and Status=="Unhealthy"),
-            Low = countif(Severity=="Low" and Status=="Unhealthy")
-            by subscriptionId, DB_resourcename
-| extend scan_result= strcat(UnHealthy, " / ", Total_sacn)
-| project subscriptionId, DB_resourcename, UnHealthy_DB, scan_result, High, Medium, Low
+let LastWeek = SecurityIncident // 전주 데이터 가져오기
+| where TimeGenerated >= datetime_utc_to_local(startofday(now()) - 14d, 'Asia/Seoul') and TimeGenerated < datetime_utc_to_local(startofday(now()) - 7d, 'Asia/Seoul') 
+| summarize LastWeek_Total=count(Title) by Severity, Title
+| order by LastWeek_Total desc
+| limit 5
+| extend LastWeek_Rank=row_number();
+let ThisWeek = SecurityIncident // 금주 데이터 가져오기
+| where TimeGenerated >= datetime_utc_to_local(startofday(now()) - 7d, 'Asia/Seoul') and TimeGenerated < datetime_utc_to_local(startofday(now()), 'Asia/Seoul') 
+| summarize ThisWeek_Total=count(Title) by Severity, Title, Description, ProviderName
+| order by ThisWeek_Total desc
+| limit 5
+| extend ThisWeek_Rank=row_number();
+ThisWeek // 금주 데이터를 기준으로 전주 데이터와 조인
+| join kind=leftouter (
+    LastWeek
+) on Title
+| extend Rank_Change = case(
+    isnotempty(LastWeek_Rank) and ThisWeek_Rank == LastWeek_Rank, "-",             // 동일한 순위일 경우 '-'
+    isnotempty(LastWeek_Rank), 
+        strcat(
+            iff(ThisWeek_Rank - LastWeek_Rank < 0, "+", "-"),                     // 순위 상승/하락 여부
+            tostring(abs(ThisWeek_Rank - LastWeek_Rank))                         // 순위 변동 절대값
+        ),
+    "New"                                                                        // 전주에 없으면 New
+)
+| project Rank=ThisWeek_Rank, Severity, Title, ProviderName, Total_Alert=ThisWeek_Total, Rank_Change // 최종 컬럼 선택
+| order by Total_Alert desc

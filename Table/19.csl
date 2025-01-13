@@ -1,17 +1,29 @@
 //Table//LA//
-arg("").securityresources
-| where type == "microsoft.security/assessments/subassessments"
-| extend assessmentKey = tostring(split(id, "/", 12)[0]) // 스캐너 평가키 추출
-| where assessmentKey == "f97aa83c-9b63-4f9a-99f6-b22c4398f936" or assessmentKey == "82e20e14-edc5-4373-bfc4-f13121257c37"
-| extend DB_resourcename = tostring(split(properties.resourceDetails.id, "/", 8)[0]),
-         DB_name = tostring(split(properties.resourceDetails.id, "/", 10)[0]), 
-         Status = tostring(properties.status.code),
-         displayName = tostring(properties.displayName),
-         category = tostring(properties.category),
-         benchmarks = tostring(properties.additionalData.benchmarks[0].benchmark),
-         Severity = tostring(properties.status.severity),
-         Severity_sco = toint(iff(properties.status.severity=="High", 3, iff(properties.status.severity=="Medium", 2, iff(properties.status.severity=="Low", 1, 0)))) //심각도에 따라 정렬위해 컬럼 추가
-| where Status == "Unhealthy"
-| project DB_resourcename, DB_name, displayName, category, benchmarks, Severity, Severity_sco
-| order by DB_resourcename, DB_name, Severity_sco desc // 심각도 High -> Low 순 정렬
-| project-away Severity_sco // 별도 심각도 점수 컬럼 출력 제외
+let TI_ip_count = SecurityAlert
+    | where TimeGenerated >= datetime_utc_to_local(startofday(now()) - 7d, 'Asia/Seoul') and TimeGenerated < datetime_utc_to_local(startofday(now()), 'Asia/Seoul')  // 최근 7일 동안의 데이터 필터링
+    | extend EntityArray = parse_json(Entities) // Entities 필드를 JSON 배열로 변환
+    | mv-expand EntityArray // JSON 배열을 각 요소로 확장
+    | extend
+        EntityType = tostring(EntityArray.Type),
+        IPAddress = tostring(EntityArray.Address) // Type과 Address 값 추출
+    | where EntityType == "ip" // Type이 'ip'인 경우만 필터링
+    | summarize Alerts = count() by IPAddress; // IP별로 발생한 경고 수 집계
+TI_ip_count
+| join kind=inner (
+    ThreatIntelligenceIndicator
+    | project
+        TI_IP_Address = NetworkSourceIP,
+        ThreatType,
+        Description,
+        Source = SourceSystem,
+        ConfidenceScore// ThreatIntelligenceIndicator에서 필요한 컬럼 추출
+    )
+    on $left.IPAddress == $right.TI_IP_Address // TI IP 주소와 경고 IP 주소를 매칭
+| project TI_IP_Address, ThreatType, Source, Alerts // 최종 컬럼 출력
+| distinct TI_IP_Address, ThreatType, Source, Alerts
+| extend ip_location = geo_info_from_ip_address(TI_IP_Address).country
+| where ThreatType != "WatchList"
+| order by Alerts desc
+| extend Rank=row_number()
+| project Rank, TI_IP_Address, ip_location, ThreatType, Alerts
+| limit 5
