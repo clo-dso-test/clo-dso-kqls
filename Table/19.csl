@@ -24,6 +24,7 @@ TI_ip_count
 | extend ip_location = geo_info_from_ip_address(TI_IP_Address).country
 | where ThreatType != "WatchList"
 | order by Alerts desc
-| extend Rank=row_number()
-| project Rank, TI_IP_Address, ip_location, ThreatType, Alerts
 | limit 5
+| extend Rank=row_number()
+| extend Virus_Total = strcat("https://www.virustotal.com/gui/ip-address/", TI_IP_Address) // VirusTotal 바로가기 url 추가
+| project Rank, TI_IP_Address, ip_location, ThreatType, Alerts, Virus_Total
