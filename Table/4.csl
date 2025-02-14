@@ -1,7 +1,9 @@
 //Table//LA//
+let startDate = startofday(datetime_utc_to_local(now(), 'Asia/Seoul') - 7d); // 1주전 00:00:00(KST)부터
+let endDate = startofday(datetime_utc_to_local(now(), 'Asia/Seoul')) - 1s; // 전일 23:59:59(KST)까지
 SecurityAlert 
-| extend localTime = datetime_utc_to_local(StartTime, 'Asia/Seoul') // UTC -> KST 변환
-| where localTime between (datetime_utc_to_local(ago(7d), 'Asia/Seoul') .. datetime_utc_to_local(now()-1d, 'Asia/Seoul'))  //  
+| extend localTime = datetime_utc_to_local(TimeGenerated, 'Asia/Seoul') // UTC -> KST 변환
+| where localTime between (startDate .. endDate)
 | where ProductName contains "MDC" or ProductName == "Microsoft Defender for Cloud" or ProductName == "Azure Security Center"// MDC 경고만 필터(Sentinel 경고도 가져오는경우 해당 행 주석처리) 
 | extend ParsedExtendedProperties = parse_json(ExtendedProperties) // json구조로 변환 
 | extend ResourceType = tostring(ParsedExtendedProperties.resourceType) // 파싱된 json에서 'resourceType' 키값 가져와서 컬럼추가 
@@ -15,4 +17,3 @@ SecurityAlert
 | extend alert_count_stauts = strcat(alert_count,"건^","(",Status,")")
 | extend Entiti_info = strcat("• 영향 리소스 :^",CompromisedEntity,"^","• 리소스 그룹 :^",ResourceGroup,"^","• 리소스 타입 :^",ResourceType)
 | project Num, Alert_Date, DisplayName, alert_count_stauts, Entiti_info,  AlertSeverity, Tactics, RemediationSteps 
-
