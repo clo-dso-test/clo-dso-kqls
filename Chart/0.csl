@@ -1,9 +1,12 @@
 //Chart//LA//
+let startDate = startofday(datetime_utc_to_local(now(), 'Asia/Seoul') - 7d); // 1주전 00:00:00(KST)부터
+let endDate = startofday(datetime_utc_to_local(now(), 'Asia/Seoul')) - 1s; // 전일까지 23:59:59(KST)까지
 SecurityIncident
 | extend KST_Time = datetime_utc_to_local(TimeGenerated, 'Asia/Seoul') // UTC -> KST 변환
-| where KST_Time >= datetime_utc_to_local(startofday(now()) - 7d, 'Asia/Seoul') -9h
-    and KST_Time < datetime_utc_to_local(startofday(now()), 'Asia/Seoul') -9h
-| where not(Title contains "Reflective DLL Loading" or Title contains "Suspicious LDAP Query" or Title contains "Multi-stage incident involving")
+| where KST_Time between (startDate .. endDate)
+| where Severity != "Informational" // 정보제공 심각도 제외
+| summarize arg_max(KST_Time, Severity, Title) by IncidentNumber
+//| where not(Title contains "Reflective DLL Loading" or Title contains "Suspicious LDAP Query" or Title contains "Multi-stage incident involving")
 | summarize High = dcountif(IncidentNumber, Severity == 'High'),
             Medium = dcountif(IncidentNumber, Severity == 'Medium'),
             Low = dcountif(IncidentNumber, Severity == 'Low')

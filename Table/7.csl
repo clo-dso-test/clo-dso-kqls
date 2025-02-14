@@ -1,5 +1,5 @@
-//Table//LA//
-arg("").securityresources
+//Table//RG//
+securityresources
     | where type == 'microsoft.security/regulatorycompliancestandards'
     | extend complianceStandard=name,
              state=properties.state,
