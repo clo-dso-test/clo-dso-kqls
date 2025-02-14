@@ -2,6 +2,7 @@
 let LastWeek = SecurityIncident // 전주 데이터 가져오기
 | where TimeGenerated >= datetime_utc_to_local(startofday(now()) - 14d, 'Asia/Seoul') and TimeGenerated < datetime_utc_to_local(startofday(now()) - 7d, 'Asia/Seoul')
 | where Severity != "Informational" // 정보제공 심각도 제외
+| where not(Title contains "Reflective DLL Loading" or Title contains "Suspicious LDAP Query" or Title contains "Multi-stage incident involving")
 | summarize LastWeek_Total=count(Title) by Severity, Title
 | order by LastWeek_Total desc
 | limit 5
@@ -9,6 +10,7 @@ let LastWeek = SecurityIncident // 전주 데이터 가져오기
 let ThisWeek = SecurityIncident // 금주 데이터 가져오기
 | where TimeGenerated >= datetime_utc_to_local(startofday(now()) - 7d, 'Asia/Seoul') and TimeGenerated < datetime_utc_to_local(startofday(now()), 'Asia/Seoul')
 | where Severity != "Informational" // 정보제공 심각도 제외
+| where not(Title contains "Reflective DLL Loading" or Title contains "Suspicious LDAP Query" or Title contains "Multi-stage incident involving")
 | summarize ThisWeek_Total=count(Title) by Severity, Title, Description, ProviderName
 | order by ThisWeek_Total desc
 | limit 5
