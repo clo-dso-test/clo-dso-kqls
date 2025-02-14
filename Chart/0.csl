@@ -3,6 +3,7 @@ SecurityIncident
 | extend KST_Time = datetime_utc_to_local(TimeGenerated, 'Asia/Seoul') // UTC -> KST 변환
 | where KST_Time >= datetime_utc_to_local(startofday(now()) - 7d, 'Asia/Seoul') -9h
     and KST_Time < datetime_utc_to_local(startofday(now()), 'Asia/Seoul') -9h
+| where not(Title contains "Reflective DLL Loading" or Title contains "Suspicious LDAP Query" or Title contains "Multi-stage incident involving")
 | summarize High = dcountif(IncidentNumber, Severity == 'High'),
             Medium = dcountif(IncidentNumber, Severity == 'Medium'),
             Low = dcountif(IncidentNumber, Severity == 'Low')
