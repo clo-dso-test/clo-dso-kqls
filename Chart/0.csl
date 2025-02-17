@@ -4,9 +4,7 @@ let endDate = startofday(datetime_utc_to_local(now(), 'Asia/Seoul')) - 1s; // �
 SecurityIncident
 | extend KST_Time = datetime_utc_to_local(TimeGenerated, 'Asia/Seoul') // UTC -> KST 변환
 | where KST_Time between (startDate .. endDate)
-| where Severity != "Informational" // 정보제공 심각도 제외
 | summarize arg_max(KST_Time, Severity, Title) by IncidentNumber
-//| where not(Title contains "Reflective DLL Loading" or Title contains "Suspicious LDAP Query" or Title contains "Multi-stage incident involving")
 | summarize High = dcountif(IncidentNumber, Severity == 'High'),
             Medium = dcountif(IncidentNumber, Severity == 'Medium'),
             Low = dcountif(IncidentNumber, Severity == 'Low')
