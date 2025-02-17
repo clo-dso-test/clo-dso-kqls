@@ -4,9 +4,9 @@ let endDate = startofday(datetime_utc_to_local(now(), 'Asia/Seoul')) - 1s; // �
 let Incident = SecurityIncident 
 | extend KST_Time = datetime_utc_to_local(TimeGenerated, 'Asia/Seoul') // UTC -> KST 변환
 | where KST_Time between (startDate .. endDate) 
-| where Severity != "Informational" // 정보제공 심각도 제외
 //| where not(Title contains "Reflective DLL Loading" or Title contains "Suspicious LDAP Query" or Title contains "Multi-stage incident involving")
 | summarize arg_max(KST_Time, Severity, Title, ProviderName) by IncidentNumber
+| where Severity != "Informational" // 정보제공 심각도 제외
 | extend DaysAgo = bin(datetime_diff('day', datetime_utc_to_local(now()-1d, 'Asia/Seoul'), KST_Time), 7);
 let LastWeek = Incident// 전주
 | where DaysAgo == 7
