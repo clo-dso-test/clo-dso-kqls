@@ -1,6 +1,9 @@
 //Table//LA//
+let startDate = startofday(datetime_utc_to_local(now(), 'Asia/Seoul') - 7d); // 1주전 00:00:00(KST)부터
+let endDate = startofday(datetime_utc_to_local(now(), 'Asia/Seoul')) - 1s; // 전일까지 23:59:59(KST)까지
 let TI_ip_count = SecurityAlert
-    | where TimeGenerated >= datetime_utc_to_local(startofday(now()) - 7d, 'Asia/Seoul') and TimeGenerated < datetime_utc_to_local(startofday(now()), 'Asia/Seoul')  // 최근 7일 동안의 데이터 필터링
+    | extend localTime = datetime_utc_to_local(TimeGenerated, 'Asia/Seoul') // UTC -> KST 변환
+    | where localTime between (startDate .. endDate) // 최근 7일 동안의 데이터 필터링
     | extend EntityArray = parse_json(Entities) // Entities 필드를 JSON 배열로 변환
     | mv-expand EntityArray // JSON 배열을 각 요소로 확장
     | extend
