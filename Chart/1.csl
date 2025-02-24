@@ -1,4 +1,4 @@
-//Table//LA//
+//Chart//LA//
 let startDate = startofday(datetime_utc_to_local(now(), 'Asia/Seoul') - 28d); // 4주전 00:00:00(KST)부터
 let endDate = startofday(datetime_utc_to_local(now(), 'Asia/Seoul')) - 1s; // 전일 23:59:59(KST)까지
 // 1. 모든 구독 ID를 distinct로 가져옴
