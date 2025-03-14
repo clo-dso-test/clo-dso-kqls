@@ -5,7 +5,7 @@ let Incident = SecurityIncident
 | extend KST_Time = datetime_utc_to_local(TimeGenerated, 'Asia/Seoul') // UTC -> KST 변환
 | where KST_Time between (startDate .. endDate)
 | summarize arg_max(KST_Time, Severity, Title, ProviderName, Status) by IncidentNumber
-| where Status != "Closed" // 인시던트 닫힘 상태 제외
+| where Status == "New" // 인시던트 신규 상태만 출력
 | where Severity != "Informational" // 정보제공 심각도 제외
 | extend DaysAgo = bin(datetime_diff('day', datetime_utc_to_local(now()-1s, 'Asia/Seoul'), KST_Time), 7);
 let LastWeek = Incident// 전주
