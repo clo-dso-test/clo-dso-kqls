@@ -4,7 +4,8 @@ let endDate = startofday(datetime_utc_to_local(now(), 'Asia/Seoul')) - 1s; // �
 SecurityIncident
 | extend KST_Time = datetime_utc_to_local(TimeGenerated, 'Asia/Seoul') // UTC -> KST 변환
 | where KST_Time between (startDate .. endDate)
-| summarize arg_max(KST_Time, Severity, Title) by IncidentNumber
+| summarize arg_max(KST_Time, Severity, Title, Status) by IncidentNumber
+| where Status == "New" // 인시던트 신규 상태만 출력
 | summarize High = dcountif(IncidentNumber, Severity == 'High'),
             Medium = dcountif(IncidentNumber, Severity == 'Medium'),
             Low = dcountif(IncidentNumber, Severity == 'Low')
