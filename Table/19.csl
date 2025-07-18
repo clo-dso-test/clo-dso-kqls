@@ -13,17 +13,16 @@ let TI_ip_count = SecurityAlert
     | summarize Alerts = count() by IPAddress; // IP별로 발생한 경고 수 집계
 TI_ip_count
 | join kind=inner (
-    ThreatIntelligenceIndicator
-    | project
-        TI_IP_Address = NetworkSourceIP,
-        ThreatType,
-        Description,
-        Source = SourceSystem,
-        ConfidenceScore// ThreatIntelligenceIndicator에서 필요한 컬럼 추출
+    ThreatIntelIndicators
+| where ObservableValue matches regex @"^(\d{1,3}\.){3}\d{1,3}$"
+| extend ThreatType = tostring(parse_json(tostring(Data.indicator_types))[0])
+| project
+    TI_IP_Address = ObservableValue,
+    ThreatType
     )
     on $left.IPAddress == $right.TI_IP_Address // TI IP 주소와 경고 IP 주소를 매칭
-| project TI_IP_Address, ThreatType, Source, Alerts // 최종 컬럼 출력
-| distinct TI_IP_Address, ThreatType, Source, Alerts
+| project TI_IP_Address, ThreatType, Alerts // 최종 컬럼 출력
+| distinct TI_IP_Address, ThreatType, Alerts
 | extend ip_location = geo_info_from_ip_address(TI_IP_Address).country
 | where ThreatType != "WatchList"
 | order by Alerts desc
