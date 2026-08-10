@@ -12,9 +12,10 @@ arg("").securityresources
         subAssessmentImpact=tostring(properties.additionalData.impact),
         severity=tostring(properties.metadata.severity),
         statusDescription=tostring(properties.status.description),
-        additionalData=tostring(properties.additionalData)
-| summarize numOfResources=dcount(resourceId) by name, subAssessmentName, subAssessmentCategory, severity, statusDescription, subAssessmentRemediation, subAssessmentImpact
+        additionalData=tostring(properties.additionalData),
+        link= extract(@"(portal\.azure\.com\/#blade\/Microsoft\_Azure\_Security\/RecommendationsBlade\/assessmentKey\/[^\/]+)", 1, tostring(properties.links.azurePortal))
+| summarize numOfResources=dcount(resourceId) by name, subAssessmentName, subAssessmentCategory, severity, statusDescription, subAssessmentRemediation, subAssessmentImpact, link
 | extend high = iff(severity == "High", 3,0), medium = iff(severity == "Medium", 2, 0), low = iff(severity == "Low", 1 ,0)
 | extend all = high + medium + low
 | order by all desc, numOfResources desc
-| project subAssessmentName, subAssessmentCategory, numOfResources, severity
+| project subAssessmentName, subAssessmentCategory, numOfResources, severity, link
